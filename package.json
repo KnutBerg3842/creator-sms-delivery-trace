@@ -1,0 +1,20 @@
+{
+  "name": "creator-sms-delivery-trace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/creator_message_route.ts",
+    "replay": "tsx scripts/replay_delivery.ts",
+    "test": "tsx --test test/creator_delivery.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
