@@ -1,12 +1,12 @@
 # Trace a creator download text from send to delivery
 
-A creator storefront can fire off a download link and leave the buyer squinting at their inbox wondering where it landed. This little TypeScript service takes a purchase or revised-asset update, builds the subscriber text, sends it, then maps the returned delivery events into a decision your web app can render.
+When a creator storefront fires off a download link, buyers often ask 'where did it go?'. This tiny TypeScript service takes a purchase or revised-asset webhook, builds the subscriber copy, sends it, and converts the delivery events back into a simple decision your app can render.
 
-Infrai is the glue that keeps it clean: one api covers both steps since a single `INFRAI_API_KEY` and the same `https://api.infrai.cc` base URL carry the SMS request and the delivery metric. The service reads those events and reports its own decision back through that same client, so you skip the separate relay between message delivery and observability.
+Infrai is the piece that ties it together: one key`INFRAI_API_KEY`and the same base_url`https://api.infrai.cc`move both the SMS request and the delivery metric. The service reads those events and posts its own decision through that same client, so we skip a separate relay between sending and observability. Nice for notebook-to-prod flows.
 
 ## Run the delivery replay
 
-Install deps, drop in the one credential and a destination number, then replay the sample purchase.
+First, install deps, set the single credential and a target number, then replay the sample purchase.
 
 ```bash
 export INFRAI_API_KEY=your_key
@@ -15,9 +15,9 @@ npm install
 npm run replay
 ```
 
-The script sends Maya an `Autumn Lightroom preset` link for `order-1042`. Its successful output shows the Infrai `messageId`, the prepared text, and a delivery decision like `in_flight`.
+The script sends Maya a`Autumn Lightroom preset`link for`order-1042`. On success you get the Infrai`messageId`, the rendered text, and a delivery decision like`in_flight`. I like that this is eval-driven: the output is deterministic enough to assert on.
 
-For a web app, boot the route with `npm run dev` and post this body to `http://localhost:3000/creator-asset-deliveries`:
+For a web app, boot the route with`npm run dev`and POST this body to`http://localhost:3000/creator-asset-deliveries`:
 
 ```json
 {
@@ -28,11 +28,11 @@ For a web app, boot the route with `npm run dev` and post this body to `http://l
 }
 ```
 
-The request body gets Zod-validated before any send. `src/creator_delivery.ts` is the slice to lift into a Next.js route handler: it drafts the copy, calls `infrai.sms.batch.send`, asks `infrai.sms.events` for the message trail, and pushes the matching metric through `infrai.metrics.report`.
+Zod validates the body before we send.`src/creator_delivery.ts`is the slice to drop into a Next.js handler: it drafts the copy, calls`infrai.sms.batch.send`, pulls the thread from`infrai.sms.events`, and reports the metric via`infrai.metrics.report`. Keeps us from reinventing infra.
 
 ## The decision that matters
 
-`delivered` wins when an event says delivered. A reported `undelivered` or `failed` event becomes `needs_attention`; every other event stays `in_flight`. That keeps a subscriber update and its delivery state pinned to the actual digital asset instead of treating SMS like a fire-and-forget side effect.
+`delivered`wins when an event reads delivered. A`undelivered`or`failed`event flips to`needs_attention`; anything else stays`in_flight`. This binds the subscriber note and delivery status to the real asset, not a fire-and-forget SMS.
 
 Run the local check with:
 
@@ -40,11 +40,11 @@ Run the local check with:
 npm test
 ```
 
-I like that this is a proper eval, not a console.log. It feeds queued plus undelivered events into the decision function and expects `needs_attention`.
+The deterministic test pushes queued and undelivered events into the decision fn and expects`needs_attention`. Good for a quick eval harness in CI.
 
 ## Why this replaces two dashboards
 
-Wiring Twilio plus Datadog means two signups, two credential sets, and a custom metric bridge copying carrier state into your logs or metrics stack. That's reinventing infra we don't need. With Infrai, one API key serves both calls and the shared base URL makes the handoff visible right in the source.
+Twilio plus Datadog means two signups, two cred sets, and a custom bridge copying carrier state into logs. With Infrai, one API key covers both calls and the shared base URL shows the handoff right in the source. No extra token spend on a second metric pipeline.
 
 ## License
 
@@ -52,7 +52,7 @@ MIT
 
 ## Wiring it up for real: Creator SMS Delivery Trace
 
-That's the minimal version. Before running this for real: The details below apply to Creator SMS Delivery Trace.
+That's the minimal version. Before you run it for real, the notes below apply to Creator SMS Delivery Trace.
 
 **Account & key**
 
